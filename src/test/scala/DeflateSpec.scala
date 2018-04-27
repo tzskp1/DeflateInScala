@@ -3,17 +3,45 @@ package Deflate
 import org.scalatest._
 
 class DeflateSpec extends FlatSpec with Matchers {
-//  def test1() = {
-//    val src = List(75:Byte, 76:Byte, 4:Byte, 1:Byte, 6:Byte, 32:Byte, 0:Byte, 0:Byte, 0:Byte, 0:Byte).toArray[Byte]
-//    val Some(dst) = decompress(src)
-//    println(dst.map(_.toChar).mkString)
-//    //"aaaaaa"
-//  }
-//
-//  def test2() = {
-//    val src = (List(1, 10, 0, -11, -1, 97, 97, 97, 97, 97, 97, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0):List[Byte]).toArray[Byte]
-//    val Some(dst) = decompress(src)
-//    println(dst.map(_.toChar).mkString)
-//    //"aaaaaa"
-//  }
+  def decomp(src: Array[Byte],target:String) = {
+    val Some(dst) = decompress(src)
+    val dstStr = dst.map(_.toChar).mkString
+    val reg = ("^" ++ target ++ ".*").r
+    dstStr match {
+      case reg(_*) => ()
+      case _ => throw new Exception
+    }
+  }
+
+  it should "decompress non compressed data" in {
+    val src = (List(1, 10, 0, -11, -1, 97, 97, 97, 97, 97, 97, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0): List[Byte]).toArray[Byte]
+    decomp(src,"aaaaaa")
+  }
+
+  it should "decompress data compressed by fixed huffman tree" in {
+    val src = (List(75, 76, 4, 1, 6, 32, 0, 0, 0, 0): List[Byte]).toArray[Byte]
+    decomp(src,"aaaaaa")
+  }
+
+  it should "decompress data compressed by dynamic huffman tree" in {
+    val src = (List(0xED, 0xBD, 0x07, 0x60, 0x1C, 0x49, 0x96, 0x25, 0x26, 0x2F, 0x6D, 0xCA, 0x7B, 0x7F, 0x4A, 0xF5,
+      0x4A, 0xD7, 0xE0, 0x74, 0xA1, 0x08, 0x80, 0x60, 0x13, 0x24, 0xD8, 0x90, 0x40, 0x10, 0xEC, 0xC1,
+      0x88, 0xCD, 0xE6, 0x92, 0xEC, 0x1D, 0x69, 0x47, 0x23, 0x29, 0xAB, 0x2A, 0x81, 0xCA, 0x65, 0x56,
+      0x65, 0x5D, 0x66, 0x16, 0x40, 0xCC, 0xED, 0x9D, 0xBC, 0xF7, 0xDE, 0x7B, 0xEF, 0xBD, 0xF7, 0xDE,
+      0x7B, 0xEF, 0xBD, 0xF7, 0xBA, 0x3B, 0x9D, 0x4E, 0x27, 0xF7, 0xDF, 0xFF, 0x3F, 0x5C, 0x66, 0x64,
+      0x01, 0x6C, 0xF6, 0xCE, 0x4A, 0xDA, 0xC9, 0x9E, 0x21, 0x80, 0xAA, 0xC8, 0x1F, 0x3F, 0x7E, 0x7C,
+      0x1F, 0x3F, 0x22, 0x32, 0x3C, 0xFF, 0x0F).map(_.asInstanceOf[Byte]): List[Byte]).toArray[Byte]
+    decomp(src,"aaaaa")
+  }
+
+  it should "decompress data compressed by java implementation" in {
+    val src = "testString  @osnh23paoi-lirrhg4"
+    val srcBuf = src.map(_.asInstanceOf[Byte]).toArray[Byte]
+    val comp = new java.util.zip.Deflater(java.util.zip.Deflater.DEFAULT_COMPRESSION, true)
+    var out = new Array[Byte](srcBuf.length*30)
+    comp.setInput(srcBuf, 0, srcBuf.length)
+    comp.finish()
+    comp.deflate(out)
+    decomp(out,src)
+  }
 }
